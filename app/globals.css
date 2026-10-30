@@ -1,4 +1,13 @@
 @import 'tailwindcss';
+
+[data-selected="true"] {
+  background-color: #e4eee5 !important;
+  box-shadow: inset 3px 0 0 #477053;
+}
+
+[data-selected="true"] td {
+  color: #252525;
+}
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
