@@ -200,6 +200,33 @@ export function CsvExplorer() {
   const [editingColumns, setEditingColumns] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [copiedCell, setCopiedCell] = useState<string | null>(null);
+
+  const copyCell = async (value: unknown, cellKey: string) => {
+    const text = String(value ?? "");
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error("Clipboard API unavailable");
+      }
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      if (!copied) return;
+    }
+
+    setCopiedCell(cellKey);
+    window.setTimeout(() => setCopiedCell(null), 1200);
+  };
 
   const load = (file: File) => {
     if (!file.name.toLowerCase().endsWith(".csv")) return;
@@ -806,9 +833,22 @@ export function CsvExplorer() {
                         {visibleHeaders.map((header) => (
                           <td
                             key={header}
-                            className="max-w-[260px] truncate px-5 py-3.5 text-[#45453f]"
+                            onDoubleClick={(event) => {
+                              event.stopPropagation();
+                              void copyCell(row[header], `${index}:${header}`);
+                            }}
+                            title="Double-click to copy"
+                            className={cn(
+                              "max-w-[260px] cursor-copy truncate px-5 py-3.5 text-[#45453f]",
+                              copiedCell === `${index}:${header}` &&
+                                "bg-[#e6eee8] text-[#2f6643]",
+                            )}
                           >
-                            {row[header] || (
+                            {copiedCell === `${index}:${header}` ? (
+                              <span className="text-xs font-medium">Copied</span>
+                            ) : row[header] ? (
+                              row[header]
+                            ) : (
                               <span className="text-[#c8c8c0]">—</span>
                             )}
                           </td>
