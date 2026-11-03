@@ -668,9 +668,13 @@ export function CsvExplorer() {
                     </div>
                     <span className="text-xs text-[#999990]">{headers.length} columns</span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2" role="list" aria-label="Column order">
+                  <div
+                    className="mt-3 flex max-h-[min(40vh,24rem)] flex-wrap gap-2 overflow-y-auto pr-1"
+                    role="list"
+                    aria-label="Column order"
+                  >
                     {headers.map((header, index) => (
-                      <div
+                        <div
                         key={header}
                         role="listitem"
                         draggable
@@ -707,7 +711,7 @@ export function CsvExplorer() {
                           {hiddenColumns.has(header) ? <EyeOff /> : <Eye />}
                         </button>
                       </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               )}
