@@ -10,6 +10,8 @@ import {
   Check,
   ChevronDown,
   Download,
+  Eye,
+  EyeOff,
   FileUp,
   Filter,
   GripVertical,
@@ -196,6 +198,7 @@ export function CsvExplorer() {
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
   const [editingColumns, setEditingColumns] = useState(false);
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const load = (file: File) => {
@@ -214,6 +217,7 @@ export function CsvExplorer() {
         },
       ]);
       setSort(null);
+      setHiddenColumns(new Set());
       setSelectedRows(new Set());
     };
     reader.readAsText(file);
@@ -254,6 +258,7 @@ export function CsvExplorer() {
     setHeaders(sampleHeaders);
     setRows(sampleRows);
     setFileName("customer_export.csv");
+    setHiddenColumns(new Set());
     setSelectedRows(new Set());
     setGroups([
       { id: crypto.randomUUID(), join: "AND", rules: [newRule(sampleHeaders)] },
@@ -272,6 +277,15 @@ export function CsvExplorer() {
           : group,
       ),
     );
+  const visibleHeaders = headers.filter((header) => !hiddenColumns.has(header));
+  const toggleColumnVisibility = (header: string) => {
+    setHiddenColumns((current) => {
+      if (!current.has(header) && current.size === headers.length - 1) return current;
+      const next = new Set(current);
+      next.has(header) ? next.delete(header) : next.add(header);
+      return next;
+    });
+  };
   const moveColumn = (source: string, target: string) => {
     if (source === target) return;
     setHeaders((current) => {
@@ -287,8 +301,10 @@ export function CsvExplorer() {
   };
   const exportCsv = () => {
     const csv = [
-      headers,
-      ...filteredRows.map((row) => headers.map((header) => row[header] ?? "")),
+      visibleHeaders,
+      ...filteredRows.map((row) =>
+        visibleHeaders.map((header) => row[header] ?? ""),
+      ),
     ]
       .map((line) =>
         line.map((value) => `"${value.replaceAll('"', '""')}"`).join(","),
@@ -679,7 +695,17 @@ export function CsvExplorer() {
                         )}
                       >
                         <GripVertical className="text-[#aaa9a1]" />
-                        <span>{index + 1}. {header}</span>
+                        <span className="min-w-0 flex-1 truncate">{index + 1}. {header}</span>
+                        <button
+                          type="button"
+                          draggable={false}
+                          onClick={() => toggleColumnVisibility(header)}
+                          aria-label={`${hiddenColumns.has(header) ? "Show" : "Hide"} ${header} column`}
+                          title={hiddenColumns.has(header) ? "Show column" : "Hide column"}
+                          className="rounded-md p-1 text-[#8b8b83] hover:bg-[#efefe9] hover:text-[#252525]"
+                        >
+                          {hiddenColumns.has(header) ? <EyeOff /> : <Eye />}
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -689,7 +715,7 @@ export function CsvExplorer() {
                 <table className="w-full min-w-[700px] border-collapse text-left text-xs">
                   <thead className="sticky top-0 z-30 bg-[#f1f1ec]">
                     <tr className="border-b border-[#e8e8e1] bg-[#f4f4ef]">
-                      {headers.map((header) => (
+                      {visibleHeaders.map((header) => (
                         <th
                           key={header}
                           draggable
@@ -773,7 +799,7 @@ export function CsvExplorer() {
                             "bg-[#e6eee8] hover:bg-[#e6eee8]",
                         )}
                       >
-                        {headers.map((header) => (
+                        {visibleHeaders.map((header) => (
                           <td
                             key={header}
                             className="max-w-[260px] truncate px-5 py-3.5 text-[#45453f]"
