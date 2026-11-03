@@ -195,6 +195,7 @@ export function CsvExplorer() {
   const [dragging, setDragging] = useState(false);
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
+  const [editingColumns, setEditingColumns] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const load = (file: File) => {
@@ -622,6 +623,15 @@ export function CsvExplorer() {
                   <Button
                     variant="outline"
                     className="h-9 rounded-lg border-[#deded7] bg-transparent text-xs"
+                    onClick={() => setEditingColumns((current) => !current)}
+                    aria-expanded={editingColumns}
+                  >
+                    <GripVertical data-icon="inline-start" />
+                    {editingColumns ? "Done" : "Edit columns"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-9 rounded-lg border-[#deded7] bg-transparent text-xs"
                     onClick={exportCsv}
                   >
                     <Download data-icon="inline-start" />
@@ -629,6 +639,52 @@ export function CsvExplorer() {
                   </Button>
                 </div>
               </div>
+              {editingColumns && (
+                <div className="border-b border-[#e8e8e1] bg-[#f4f4ef] px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#77776f]">
+                        Column order
+                      </p>
+                      <p className="mt-1 text-xs text-[#999990]">
+                        Drag any header to set its position in the table and export.
+                      </p>
+                    </div>
+                    <span className="text-xs text-[#999990]">{headers.length} columns</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2" role="list" aria-label="Column order">
+                    {headers.map((header, index) => (
+                      <div
+                        key={header}
+                        role="listitem"
+                        draggable
+                        onDragStart={() => setDraggingColumn(header)}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          setOverColumn(header);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (draggingColumn) moveColumn(draggingColumn, header);
+                          setDraggingColumn(null);
+                          setOverColumn(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingColumn(null);
+                          setOverColumn(null);
+                        }}
+                        className={cn(
+                          "flex cursor-grab items-center gap-2 rounded-lg border border-[#deded7] bg-white px-3 py-2 text-xs font-medium text-[#44443f] shadow-sm active:cursor-grabbing",
+                          overColumn === header && draggingColumn !== header && "border-[#477053] bg-[#e9eee9]",
+                        )}
+                      >
+                        <GripVertical className="text-[#aaa9a1]" />
+                        <span>{index + 1}. {header}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex-1 min-h-0 overflow-auto">
                 <table className="w-full min-w-[700px] border-collapse text-left text-xs">
                   <thead className="sticky top-0 z-30 bg-[#f1f1ec]">
