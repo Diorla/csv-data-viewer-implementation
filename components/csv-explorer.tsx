@@ -12,6 +12,7 @@ import {
   Download,
   FileUp,
   Filter,
+  GripVertical,
   Plus,
   Search,
   Sparkles,
@@ -192,6 +193,8 @@ export function CsvExplorer() {
   } | null>(null);
   const [query, setQuery] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
+  const [overColumn, setOverColumn] = useState<string | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const load = (file: File) => {
@@ -268,6 +271,19 @@ export function CsvExplorer() {
           : group,
       ),
     );
+  const moveColumn = (source: string, target: string) => {
+    if (source === target) return;
+    setHeaders((current) => {
+      const next = [...current];
+      const sourceIndex = next.indexOf(source);
+      const targetIndex = next.indexOf(target);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      next.splice(sourceIndex, 1);
+      const insertIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      next.splice(insertIndex, 0, source);
+      return next;
+    });
+  };
   const exportCsv = () => {
     const csv = [
       headers,
@@ -620,32 +636,63 @@ export function CsvExplorer() {
                       {headers.map((header) => (
                         <th
                           key={header}
-                          className="whitespace-nowrap bg-[#f4f4ef] px-5 py-3 font-medium text-[#77776f]"
+                          draggable
+                          onDragStart={() => setDraggingColumn(header)}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            setOverColumn(header);
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            if (draggingColumn) moveColumn(draggingColumn, header);
+                            setDraggingColumn(null);
+                            setOverColumn(null);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingColumn(null);
+                            setOverColumn(null);
+                          }}
+                          className={cn(
+                            "whitespace-nowrap bg-[#f4f4ef] px-5 py-3 font-medium text-[#77776f] transition-colors",
+                            overColumn === header && draggingColumn !== header && "bg-[#e4eee5]",
+                          )}
                         >
-                          <button
-                            className="flex items-center gap-2"
-                            onClick={() =>
-                              setSort((current) => ({
-                                column: header,
-                                direction:
-                                  current?.column === header &&
-                                  current.direction === "asc"
-                                    ? "desc"
-                                    : "asc",
-                              }))
-                            }
-                          >
-                            {header}
-                            {sort?.column === header ? (
-                              sort.direction === "asc" ? (
-                                <ArrowUpAZ />
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              draggable={false}
+                              aria-label={`Drag to move ${header} column`}
+                              title="Drag to rearrange"
+                              className="cursor-grab rounded p-1 text-[#aaa9a1] hover:bg-[#e7e7e0] hover:text-[#477053] active:cursor-grabbing"
+                            >
+                              <GripVertical />
+                            </button>
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 rounded px-1 py-1 hover:bg-[#e7e7e0]"
+                              onClick={() =>
+                                setSort((current) => ({
+                                  column: header,
+                                  direction:
+                                    current?.column === header &&
+                                    current.direction === "asc"
+                                      ? "desc"
+                                      : "asc",
+                                }))
+                              }
+                            >
+                              {header}
+                              {sort?.column === header ? (
+                                sort.direction === "asc" ? (
+                                  <ArrowUpAZ />
+                                ) : (
+                                  <ArrowDownAZ />
+                                )
                               ) : (
-                                <ArrowDownAZ />
-                              )
-                            ) : (
-                              <ChevronDown className="text-[#c0c0b8]" />
-                            )}
-                          </button>
+                                <ChevronDown className="text-[#c0c0b8]" />
+                              )}
+                            </button>
+                          </div>
                         </th>
                       ))}
                     </tr>
